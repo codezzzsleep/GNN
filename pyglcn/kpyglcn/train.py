@@ -31,9 +31,9 @@ parser.add_argument('--hidden', type=int, default=16,
                     help='Number of hidden units.')
 parser.add_argument('--dropout', type=float, default=0.6,
                     help='Dropout rate (1 - keep probability).')
-parser.add_argument('--losslr1', type=float, default=0.01,
+parser.add_argument('--losslr1', type=float, default=0.1,
                     help='')
-parser.add_argument('--losslr2', type=float, default=0.0001,
+parser.add_argument('--losslr2', type=float, default=0.01,
                     help='')
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
@@ -79,10 +79,9 @@ def train(epoch):
     optimizer.zero_grad()
     x, adj_new, output = model(features, edge)
     loss_train = loss_fn(output[idx_train], labels[idx_train])
-    gl_loss_train = compute_loss(x, adj_new, args.losslr2)
     gl_loss_train = gl_loss(x, adj_new, args.losslr1, args.losslr2)
     gl_loss_list.append(gl_loss_train.item())
-    loss_train = gl_loss_train * 0.01 + loss_train
+    loss_train = gl_loss_train + loss_train
     acc_train = accuracy(output[idx_train], labels[idx_train])
     loss_train.backward()
     optimizer.step()
@@ -90,7 +89,7 @@ def train(epoch):
     model.eval()
     x, adj_new, output = model(features, edge)
     loss_val = loss_fn(output[idx_val], labels[idx_val])
-    gl_loss_val = compute_loss(x, adj_new, args.losslr2)
+    gl_loss_val = gl_loss(x, adj_new, args.losslr1, args.losslr2)
     loss_val += gl_loss_val
     acc_val = accuracy(output[idx_val], labels[idx_val])
     print('Epoch: {:04d}'.format(epoch + 1),
@@ -106,7 +105,7 @@ def test():
     model.eval()
     x, adj_new, output = model(features, edge)
     loss_test = loss_fn(output[idx_test], labels[idx_test])
-    gl_loss_test = compute_loss(x, adj_new, args.losslr2)
+    gl_loss_test = gl_loss(x, adj_new, args.losslr1, args.losslr2)
     loss_test += gl_loss_test
     acc_test = accuracy(output[idx_test], labels[idx_test])
     print("Test set results:",
