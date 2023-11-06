@@ -2,7 +2,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+alpha = 0.5
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+
 class GCNConv(nn.Module):
     def __init__(self, in_dim, out_dim, bias=True):
         super(GCNConv, self).__init__()
@@ -72,6 +75,6 @@ class SparseGraphLearn(nn.Module):
             print("GL矩阵全为0")
         else:
             print("GL矩阵不全为0")
-        sgraph = sgraph + edge.to_dense()
+        sgraph = sgraph + edge.to_dense() * alpha
 
         return h, sgraph

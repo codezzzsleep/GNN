@@ -22,7 +22,7 @@ parser.add_argument('--no-cuda', action='store_true', default=False,
 parser.add_argument('--fastmode', action='store_true', default=False,
                     help='Validate during training pass.')
 parser.add_argument('--seed', type=int, default=123, help='Random seed.')
-parser.add_argument('--epochs', type=int, default=6000000,
+parser.add_argument('--epochs', type=int, default=100,
                     help='Number of epochs to train.')
 parser.add_argument('--lr', type=float, default=0.01,
                     help='Initial learning rate.')
@@ -125,19 +125,19 @@ print("Total time elapsed: {:.4f}s".format(time.time() - t_total))
 # # Testing
 # test()
 # Create a line plot
-x = [i for i in range(1, 601)]
+x = [i for i in range(1, args.epochs + 1)]
 
 plt.plot(x, gl_loss_list)
 
 # Add labels and a title
 plt.xlabel('Epoch')
 plt.ylabel('Loss')
-plt.title('Loss-Epoch Plot')
+plt.title('0.5Loss-Epoch Plot')
 
 # Show the plot
 plt.show()
 plt.plot(x, test_acc_list)
 plt.xlabel('Epoch')
 plt.ylabel('Acc on test')
-plt.title('Acc-Epoch Plot')
+plt.title('0.5alpha Acc-Epoch Plot')
 plt.show()
