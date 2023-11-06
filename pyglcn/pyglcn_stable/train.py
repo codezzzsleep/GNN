@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from GLoss import gl_loss
 from torch.utils.tensorboard import SummaryWriter
 
-writer = SummaryWriter("../logs/run1")
+writer = SummaryWriter("../logs/run2")
 loss_list = []
 test_acc_list = []
 # Training settings
@@ -26,9 +26,9 @@ parser.add_argument('--epochs', type=int, default=1000,
                     help='Number of epochs to train.')
 parser.add_argument('--lr', type=float, default=0.01,
                     help='Initial learning rate.')
-parser.add_argument('--alpha', type=float, default=0.5,
+parser.add_argument('--alpha', type=float, default=0.3,
                     help='residual ratio.')
-parser.add_argument('--weight_decay', type=float, default=5e-4,
+parser.add_argument('--weight_decay', type=float, default=1e-4,
                     help='Weight decay (L2 loss on parameters).')
 parser.add_argument('--hidden', type=int, default=16,
                     help='Number of hidden units.')
@@ -56,7 +56,7 @@ model = GLCN(in_dim=features.shape[1],
 # print(model.gl.weights)
 optimizer = optim.Adam(model.parameters(),
                        lr=args.lr, weight_decay=args.weight_decay)
-scheduler = lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
+scheduler = lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)
 model_ = GCN(in_dim=features.shape[1],
              hidden_dim=30,
              out_dim=labels.max().item() + 1,
@@ -96,9 +96,10 @@ def train(epoch):
                        },
                        global_step=epoch + 1)
 
-    gl_loss_train = gl_loss(x, adj_new, args.losslr1, args.losslr2)
+    gl_loss_train = gl_loss(x, adj_new, args.losslr1,
+                            args.losslr2) + + L2_loss1 * args.weight_decay + L2_loss2 * args.weight_decay
     writer.add_scalar("GLoss", gl_loss_train, epoch + 1)
-    loss_train = gl_loss_train + loss_train + L2_loss1 * args.weight_decay + L2_loss2 * args.weight_decay
+    loss_train = gl_loss_train + loss_train
     writer.add_scalars(main_tag="TotalLoss",
                        tag_scalar_dict={
                            "glcn": loss_train,
