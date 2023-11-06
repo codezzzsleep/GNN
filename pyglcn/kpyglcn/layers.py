@@ -57,13 +57,13 @@ class SparseGraphLearn(nn.Module):
     #        sgraph = tf.sparse_softmax(sgraph)
     #        return h, sgraph
     def forward(self, inputs, edge):
-        h = torch.matmul(inputs, self.weights).to(device)
+        h = torch.matmul(inputs, self.weights)
 
-        edge_v = torch.abs(h[edge[0]] - h[edge[1]]).to(device)
-        edge_v = torch.squeeze(F.relu(torch.matmul(edge_v, self.a))).to(device)
+        edge_v = torch.abs(h[edge[0]] - h[edge[1]])
+        edge_v = torch.squeeze(F.relu(torch.matmul(edge_v, self.a)))
         N = inputs.size(0)
-        sgraph = torch.sparse_coo_tensor(edge, edge_v, torch.Size([N, N])).to(device)
-        sgraph = F.softmax(sgraph.to_dense(), dim=-1).to(device)
+        sgraph = torch.sparse_coo_tensor(edge, edge_v, torch.Size([N, N]))
+        sgraph = F.softmax(sgraph.to_dense(), dim=-1)
 
         # 使用残差神经网络
         _v = torch.ones(edge_v.shape).to(device)
