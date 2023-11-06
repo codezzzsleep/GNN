@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 from GLloss import compute_loss
 
 gl_loss_list = []
+test_acc_list = []
 # Training settings
 parser = argparse.ArgumentParser()
 parser.add_argument('--no-cuda', action='store_true', default=False,
@@ -21,7 +22,7 @@ parser.add_argument('--no-cuda', action='store_true', default=False,
 parser.add_argument('--fastmode', action='store_true', default=False,
                     help='Validate during training pass.')
 parser.add_argument('--seed', type=int, default=123, help='Random seed.')
-parser.add_argument('--epochs', type=int, default=600,
+parser.add_argument('--epochs', type=int, default=6000000,
                     help='Number of epochs to train.')
 parser.add_argument('--lr', type=float, default=0.01,
                     help='Initial learning rate.')
@@ -108,6 +109,7 @@ def test():
     gl_loss_test = gl_loss(x, adj_new, args.losslr1, args.losslr2)
     loss_test += gl_loss_test
     acc_test = accuracy(output[idx_test], labels[idx_test])
+    test_acc_list.append(acc_test)
     print("Test set results:",
           "loss= {:.4f}".format(loss_test.item()),
           "accuracy= {:.4f}".format(acc_test.item()))
@@ -128,9 +130,14 @@ x = [i for i in range(1, 601)]
 plt.plot(x, gl_loss_list)
 
 # Add labels and a title
-plt.xlabel('X-axis Label')
-plt.ylabel('Y-axis Label')
-plt.title('Simple Line Plot')
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+plt.title('Loss-Epoch Plot')
 
 # Show the plot
+plt.show()
+plt.plot(x, test_acc_list)
+plt.xlabel('Epoch')
+plt.ylabel('Acc on test')
+plt.title('Acc-Epoch Plot')
 plt.show()

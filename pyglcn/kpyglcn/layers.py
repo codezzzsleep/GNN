@@ -22,7 +22,6 @@ class GCNConv(nn.Module):
         return output
 
 
-
 class SparseGraphLearn(nn.Module):
     def __init__(self, input_dim, output_dim, bias=False):
         super(SparseGraphLearn, self).__init__()
@@ -62,9 +61,17 @@ class SparseGraphLearn(nn.Module):
 
         edge_v = torch.abs(h[edge[0]] - h[edge[1]])
         edge_v = torch.squeeze(F.relu(torch.matmul(edge_v, self.a)))
-
         N = inputs.size(0)
         sgraph = torch.sparse_coo_tensor(edge, edge_v, torch.Size([N, N]))
         sgraph = F.softmax(sgraph.to_dense(), dim=-1)
+
+        # 使用残差神经网络
+        _v = torch.ones(edge_v.shape)
+        edge = torch.sparse_coo_tensor(edge, _v, torch.Size([N, N]))
+        if torch.allclose(sgraph, torch.zeros_like(sgraph)):
+            print("GL矩阵全为0")
+        else:
+            print("GL矩阵不全为0")
+        sgraph = sgraph + edge.to_dense()
 
         return h, sgraph
