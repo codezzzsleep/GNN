@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 class GCNConv(nn.Module):
     def __init__(self, in_dim, out_dim, bias=True):
         super(GCNConv, self).__init__()
@@ -57,17 +57,17 @@ class SparseGraphLearn(nn.Module):
     #        sgraph = tf.sparse_softmax(sgraph)
     #        return h, sgraph
     def forward(self, inputs, edge):
-        h = torch.matmul(inputs, self.weights)
+        h = torch.matmul(inputs, self.weights).to(device)
 
-        edge_v = torch.abs(h[edge[0]] - h[edge[1]])
-        edge_v = torch.squeeze(F.relu(torch.matmul(edge_v, self.a)))
+        edge_v = torch.abs(h[edge[0]] - h[edge[1]]).to(device)
+        edge_v = torch.squeeze(F.relu(torch.matmul(edge_v, self.a))).to(device)
         N = inputs.size(0)
-        sgraph = torch.sparse_coo_tensor(edge, edge_v, torch.Size([N, N]))
-        sgraph = F.softmax(sgraph.to_dense(), dim=-1)
+        sgraph = torch.sparse_coo_tensor(edge, edge_v, torch.Size([N, N])).to(device)
+        sgraph = F.softmax(sgraph.to_dense(), dim=-1).to(device)
 
         # 使用残差神经网络
-        _v = torch.ones(edge_v.shape)
-        edge = torch.sparse_coo_tensor(edge, _v, torch.Size([N, N]))
+        _v = torch.ones(edge_v.shape).to(device)
+        edge = torch.sparse_coo_tensor(edge, _v, torch.Size([N, N])).to(device)
         if torch.allclose(sgraph, torch.zeros_like(sgraph)):
             print("GL矩阵全为0")
         else:
