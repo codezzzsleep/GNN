@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from GLoss import gl_loss
 from torch.utils.tensorboard import SummaryWriter
 
-writer = SummaryWriter("../logs/run2")
+writer = SummaryWriter("../logs/run6")
 loss_list = []
 test_acc_list = []
 # Training settings
@@ -22,17 +22,17 @@ parser.add_argument('--no-cuda', action='store_true', default=False,
 parser.add_argument('--fastmode', action='store_true', default=False,
                     help='Validate during training pass.')
 parser.add_argument('--seed', type=int, default=3407, help='Random seed.')
-parser.add_argument('--epochs', type=int, default=1000,
+parser.add_argument('--epochs', type=int, default=4000,
                     help='Number of epochs to train.')
 parser.add_argument('--lr', type=float, default=0.01,
                     help='Initial learning rate.')
-parser.add_argument('--alpha', type=float, default=0.3,
+parser.add_argument('--alpha', type=float, default=1,
                     help='residual ratio.')
-parser.add_argument('--weight_decay', type=float, default=1e-4,
+parser.add_argument('--weight_decay', type=float, default=0.001,
                     help='Weight decay (L2 loss on parameters).')
 parser.add_argument('--hidden', type=int, default=16,
                     help='Number of hidden units.')
-parser.add_argument('--dropout', type=float, default=0.6,
+parser.add_argument('--dropout', type=float, default=0.4,
                     help='Dropout rate (1 - keep probability).')
 parser.add_argument('--losslr1', type=float, default=0.1,
                     help='')
@@ -56,7 +56,7 @@ model = GLCN(in_dim=features.shape[1],
 # print(model.gl.weights)
 optimizer = optim.Adam(model.parameters(),
                        lr=args.lr, weight_decay=args.weight_decay)
-scheduler = lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)
+scheduler = lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.2)
 model_ = GCN(in_dim=features.shape[1],
              hidden_dim=30,
              out_dim=labels.max().item() + 1,

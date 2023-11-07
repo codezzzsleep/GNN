@@ -55,10 +55,10 @@ class SparseGraphLearn(nn.Module):
         # 使用残差神经网络
         _v = torch.ones(edge_v.shape).to(device)
         edge = torch.sparse_coo_tensor(edge, _v, torch.Size([N, N])).to(device)
-        if torch.allclose(sgraph, torch.zeros_like(sgraph)):
-            print("GL矩阵全为0")
-        else:
-            print("GL矩阵不全为0")
+        # if torch.allclose(sgraph, torch.zeros_like(sgraph)):
+        #     print("GL矩阵全为0")
+        # else:
+        #     print("GL矩阵不全为0")
         sgraph = sgraph + edge.to_dense() * self.alpha
 
         return h, sgraph
