@@ -9,10 +9,10 @@ from torch.optim import lr_scheduler
 from utils import load_data, accuracy, same_seed
 from models import GLCN, GCN
 import matplotlib.pyplot as plt
-from GLoss import gl_loss
+
 from torch.utils.tensorboard import SummaryWriter
 
-writer = SummaryWriter("../logs/run6")
+writer = SummaryWriter("../logs/run21")
 loss_list = []
 test_acc_list = []
 # Training settings
@@ -26,13 +26,13 @@ parser.add_argument('--epochs', type=int, default=4000,
                     help='Number of epochs to train.')
 parser.add_argument('--lr', type=float, default=0.01,
                     help='Initial learning rate.')
-parser.add_argument('--alpha', type=float, default=1,
+parser.add_argument('--alpha', type=float, default=0,
                     help='residual ratio.')
 parser.add_argument('--weight_decay', type=float, default=0.001,
                     help='Weight decay (L2 loss on parameters).')
 parser.add_argument('--hidden', type=int, default=16,
                     help='Number of hidden units.')
-parser.add_argument('--dropout', type=float, default=0.4,
+parser.add_argument('--dropout', type=float, default=0.5,
                     help='Dropout rate (1 - keep probability).')
 parser.add_argument('--losslr1', type=float, default=0.1,
                     help='')
@@ -55,7 +55,7 @@ model = GLCN(in_dim=features.shape[1],
              dropout=args.dropout)
 # print(model.gl.weights)
 optimizer = optim.Adam(model.parameters(),
-                       lr=args.lr, weight_decay=args.weight_decay)
+                       lr=args.lr, weight_decay=5e-4)
 scheduler = lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.2)
 model_ = GCN(in_dim=features.shape[1],
              hidden_dim=30,
@@ -96,10 +96,9 @@ def train(epoch):
                        },
                        global_step=epoch + 1)
 
-    gl_loss_train = gl_loss(x, adj_new, args.losslr1,
-                            args.losslr2) + + L2_loss1 * args.weight_decay + L2_loss2 * args.weight_decay
-    writer.add_scalar("GLoss", gl_loss_train, epoch + 1)
-    loss_train = gl_loss_train + loss_train
+    # gl_loss_train = gl_loss(x, adj_new) + + L2_loss1 * args.weight_decay + L2_loss2 * args.weight_decay
+    # writer.add_scalar("GLoss", gl_loss_train, epoch + 1)
+    # loss_train = gl_loss_train + loss_train
     writer.add_scalars(main_tag="TotalLoss",
                        tag_scalar_dict={
                            "glcn": loss_train,
@@ -127,8 +126,8 @@ def train(epoch):
     loss_val = loss_fn(output[idx_val], labels[idx_val])
     loss_val_ = loss_fn(output_[idx_val], labels[idx_val])
 
-    gl_loss_val = gl_loss(x, adj_new, args.losslr1, args.losslr2)
-    loss_val += gl_loss_val
+    # gl_loss_val = gl_loss(x, adj_new)
+    # loss_val += gl_loss_val
     acc_val = accuracy(output[idx_val], labels[idx_val])
     acc_val_ = accuracy(output_[idx_val], labels[idx_val])
 
@@ -190,8 +189,8 @@ def test(epoch):
     loss_test = loss_fn(output[idx_test], labels[idx_test])
     loss_test_ = loss_fn(output_[idx_test], labels[idx_test])
 
-    gl_loss_test = gl_loss(x, adj_new, args.losslr1, args.losslr2)
-    loss_test += gl_loss_test
+    # gl_loss_test = gl_loss(x, adj_new)
+    # loss_test += gl_loss_test
     acc_test = accuracy(output[idx_test], labels[idx_test])
     acc_test_ = accuracy(output_[idx_test], labels[idx_test])
     test_acc_list.append(acc_test)
