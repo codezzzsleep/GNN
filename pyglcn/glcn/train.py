@@ -75,19 +75,21 @@ def train(epoch):
     t = time.time()
     model.train()
     optimizer.zero_grad()
-    h, edge_weight, output = model(features, edge_index)
+    X, S, output = model(features, edge_index)
+    # print(edge_weight.shape)
+    # print(edge_index.shape)
     loss_train = loss_fn(output[idx_train], labels[idx_train])
-    loss2 = gl_loss(x=h, edge_index=edge_index, edge_weight=edge_weight, losslr1=0.01, losslr2=1e-4)
+    loss2 = gl_loss(X=X, S=S, gamma=0.01, bate=1e-4)
     loss_train = loss2 + loss_train
     acc_train = accuracy(output[idx_train], labels[idx_train])
     loss_train.backward()
     optimizer.step()
 
     model.eval()
-    h, edge_weight, output = model(features, edge_index)
+    X, S, output = model(features, edge_index)
 
     loss_val = loss_fn(output[idx_val], labels[idx_val])
-    loss2 = gl_loss(x=h, edge_index=edge_index, edge_weight=edge_weight, losslr1=0.01, losslr2=1e-4)
+    loss2 = gl_loss(X=X, S=S, gamma=0.01, bate=1e-4)
     loss_val = loss_val + loss2
     acc_val = accuracy(output[idx_val], labels[idx_val])
     print('Epoch: {:04d}'.format(epoch + 1),
@@ -98,11 +100,13 @@ def train(epoch):
           'time: {:.4f}s'.format(time.time() - t))
     test()
 
+
 def test():
     model.eval()
-    h, edge_weight, output = model(features, edge_index)
+    X, S, output = model(features, edge_index)
     loss_test = loss_fn(output[idx_test], labels[idx_test])
-    loss2 = gl_loss(x=h, edge_index=edge_index, edge_weight=edge_weight, losslr1=0.01, losslr2=1e-4)
+    loss2 = gl_loss(X=X, S=S, gamma=0.01, bate=1e-4)
+
     loss_test = loss2 + loss_test
     acc_test = accuracy(output[idx_test], labels[idx_test])
     print("Test set results:",

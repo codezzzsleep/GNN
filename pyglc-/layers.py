@@ -27,13 +27,14 @@ class SparseGraphLearn(Module):
             nn.init.zeros_(self.bias)
 
     def forward(self, inputs, edge):
-        print(inputs.shape)
-        print(edge.shape)
+        # inputs [2708, 1433]
+        # self.weight [1433,70]
         h = torch.mm(inputs, self.weight)
         edge_weight = torch.abs(h[edge[0]] - h[edge[1]])
-
+        # edge_weight [10556, 70]
+        # self.a [70, 1]
+        # --> edge_weight [10556, 1]
         edge_weight = torch.mm(edge_weight, self.a)
-
         edge_weight = F.relu(edge_weight)
         edge_weight = torch.squeeze(edge_weight)
         return h, edge_weight

@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 
 from torch.utils.tensorboard import SummaryWriter
 
-writer = SummaryWriter("../logs/run21")
+writer = SummaryWriter("../logs/run31")
 loss_list = []
 test_acc_list = []
 # Training settings
@@ -22,7 +22,7 @@ parser.add_argument('--no-cuda', action='store_true', default=False,
 parser.add_argument('--fastmode', action='store_true', default=False,
                     help='Validate during training pass.')
 parser.add_argument('--seed', type=int, default=3407, help='Random seed.')
-parser.add_argument('--epochs', type=int, default=4000,
+parser.add_argument('--epochs', type=int, default=400,
                     help='Number of epochs to train.')
 parser.add_argument('--lr', type=float, default=0.01,
                     help='Initial learning rate.')
@@ -44,7 +44,7 @@ args.cuda = not args.no_cuda and torch.cuda.is_available()
 same_seed(args.seed)
 
 # Load data
-adj, edge, features, labels, idx_train, idx_val, idx_test = load_data("cora")
+adj, edge, features, labels, idx_train, idx_val, idx_test = load_data("citeseer")
 
 # Model and optimizer
 
