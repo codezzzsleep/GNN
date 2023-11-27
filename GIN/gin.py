@@ -1,102 +1,65 @@
-import os.path as osp
-import time
-
 import torch
-import torch.nn.functional as F
+import torch.nn as nn
+import torch_geometric as pyg
+import torch_geometric.data as pyg_data
 
-import torch_geometric
-from torch_geometric.datasets import TUDataset
-from torch_geometric.loader import DataLoader
-from torch_geometric.nn import MLP, GINConv, global_add_pool
+from torch_geometric.datasets import Planetoid
+dataset = Planetoid(root='/tmp/Cora',name='Cora')
+class GINConv(nn.Module):
+    def __init__(self, input_dim, hidden_dim, output_dim, eps=0.5):
+        super(GINConv, self).__init__()
+        self.mlp = nn.Sequential(
+            nn.Linear(input_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, output_dim)
+        )
+        self.eps = eps
 
-if not torch_geometric.typing.WITH_PT21:
-    quit('Dynamic shape compilation requires PyTorch >= 2.1.0')
+    def forward(self, x, edge_index):
+        edge_attr = self.mlp(x[edge_index[0]] + x[edge_index[1]])
+        return self.eps * edge_attr
 
-if torch.cuda.is_available():
-    device = torch.device('cuda')
-elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
-    # MPS is currently slower than CPU due to missing int64 min/max ops
-    device = torch.device('cpu')
-else:
-    device = torch.device('cpu')
+class GINModel(nn.Module):
+    def __init__(self, in_channels, hidden_channels, num_classes):
+        super(GINModel, self).__init__()
+        self.conv1 = GINConv(in_channels, hidden_channels, hidden_channels)
+        self.conv2 = GINConv(hidden_channels, hidden_channels, num_classes)
 
-path = osp.dirname(osp.realpath(__file__))
-path = osp.join(path, '..', '..', 'data', 'TU')
-dataset = TUDataset(path, name='MUTAG').shuffle()
+    def forward(self, data):
+        x, edge_index = data.x, data.edge_index
+        x = x.to_dense()
+        x = self.conv1(x, edge_index)
+        x = torch.relu(x)
+        x = self.conv2(x, edge_index)
+        return x
 
-train_loader = DataLoader(dataset[:0.9], batch_size=128, shuffle=True)
-test_loader = DataLoader(dataset[0.9:], batch_size=128)
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = GINModel(dataset[0].num_node_features, 32, dataset[0].num_classes).to(device)
+data = dataset[0].to(device)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
+criterion = nn.CrossEntropyLoss()
 
-
-class GIN(torch.nn.Module):
-    def __init__(self, in_channels, hidden_channels, out_channels, num_layers):
-        super().__init__()
-
-        self.convs = torch.nn.ModuleList()
-        for _ in range(num_layers):
-            mlp = MLP([in_channels, hidden_channels, hidden_channels])
-            self.convs.append(GINConv(nn=mlp, train_eps=False))
-            in_channels = hidden_channels
-
-        self.mlp = MLP([hidden_channels, hidden_channels, out_channels],
-                       norm=None, dropout=0.5)
-
-    def forward(self, x, edge_index, batch, batch_size):
-        for conv in self.convs:
-            x = conv(x, edge_index).relu()
-        # Pass the batch size to avoid CPU communication/graph breaks:
-        x = global_add_pool(x, batch, size=batch_size)
-        return self.mlp(x)
-
-
-model = GIN(
-    in_channels=dataset.num_features,
-    hidden_channels=32,
-    out_channels=dataset.num_classes,
-    num_layers=5,
-).to(device)
-
-# Compile the model into an optimized version and enforce zero graph breaks:
-model = torch_geometric.compile(model, dynamic=True, fullgraph=True)
-
-optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-
-
-def train():
+def train(model, data, optimizer, epoch):
     model.train()
+    optimizer.zero_grad()
+    output = model(data)
+    loss = criterion(output[data.train_mask], data.y[data.train_mask])
+    loss.backward()
+    optimizer.step()
+    return loss.item()
 
-    total_loss = 0
-    for data in train_loader:
-        data = data.to(device)
-        optimizer.zero_grad()
-        out = model(data.x, data.edge_index, data.batch, data.batch_size)
-        loss = F.cross_entropy(out, data.y)
-        loss.backward()
-        optimizer.step()
-        total_loss += float(loss) * data.num_graphs
-    return total_loss / len(train_loader.dataset)
-
-
-@torch.no_grad()
-def test(loader):
+def test(model, data):
     model.eval()
+    output = model(data)
+    pred = output.argmax(dim=1)
+    acc = (pred[data.test_mask] == data.y[data.test_mask]).sum().item() / data.test_mask.sum().item()
+    return acc
 
-    total_correct = 0
-    for data in loader:
-        data = data.to(device)
-        out = model(data.x, data.edge_index, data.batch, data.batch_size)
-        pred = out.argmax(dim=-1)
-        total_correct += int((pred == data.y).sum())
-    return total_correct / len(loader.dataset)
+for epoch in range(200):
+    loss = train(model, data, optimizer, epoch)
+    if epoch % 10 == 0:
+        print(f'Epoch: {epoch:03d}, Loss: {loss:.3f}')
+    acc = test(model, data)
+    print(f'Test Acc: {acc:.3f}')
 
-
-times = []
-for epoch in range(1, 101):
-    start = time.time()
-    loss = train()
-    train_acc = test(train_loader)
-    test_acc = test(test_loader)
-    times.append(time.time() - start)
-    print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Train: {train_acc:.4f}, '
-          f'Test: {test_acc:.4f}')
-print(f'Median time per epoch: {torch.tensor(times).median():.4f}s')
+print(f'Final Test Acc: {test(model, data):.3f}')
